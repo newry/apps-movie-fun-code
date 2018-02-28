@@ -17,7 +17,12 @@
 package org.superbiz.moviefun;
 
 import org.apache.commons.lang.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.superbiz.moviefun.movies.Movie;
 import org.superbiz.moviefun.movies.MoviesBean;
 
@@ -38,6 +43,9 @@ public class ActionServlet extends HttpServlet {
     private static final long serialVersionUID = -5832176047021911038L;
 
     public static int PAGE_SIZE = 5;
+    @Autowired
+    @Qualifier("moviesTM")
+    PlatformTransactionManager moviesTM;
 
     @EJB
     private MoviesBean moviesBean;
@@ -54,6 +62,7 @@ public class ActionServlet extends HttpServlet {
 
     private void process(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         String action = request.getParameter("action");
+        TransactionStatus moviesTransaction = this.moviesTM.getTransaction(new DefaultTransactionDefinition());
 
         if ("Add".equals(action)) {
 
@@ -66,6 +75,7 @@ public class ActionServlet extends HttpServlet {
             Movie movie = new Movie(title, director, genre, rating, year);
 
             moviesBean.addMovie(movie);
+            moviesTM.commit(moviesTransaction);
             response.sendRedirect("moviefun");
             return;
 
@@ -75,6 +85,7 @@ public class ActionServlet extends HttpServlet {
             for (String id : ids) {
                 moviesBean.deleteMovieId(new Long(id));
             }
+            moviesTM.commit(moviesTransaction);
 
             response.sendRedirect("moviefun");
             return;
